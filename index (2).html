@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dashboard Penjualan & Stok Barang</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f6f8; margin: 0; padding: 0; }
+    header { background: #0077cc; color: white; padding: 1rem; text-align: center; }
+    .container { max-width: 1000px; margin: 2rem auto; background: #fff; padding: 2rem; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    h2 { border-bottom: 1px solid #ccc; padding-bottom: 0.5rem; margin-top: 2rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { border: 1px solid #ccc; padding: 0.75rem; text-align: left; }
+    th { background: #eaeaea; }
+    input, button { padding: 0.5rem; margin-top: 0.5rem; width: 100%; box-sizing: border-box; }
+    .btn { background-color: #0077cc; color: white; border: none; cursor: pointer; margin-top: 1rem; }
+    .btn:hover { background-color: #005fa3; }
+    #struk { white-space: pre; background: #f4f4f4; padding: 1rem; border: 1px dashed #999; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Dashboard Penjualan, Pemasukan, dan Stok Barang</h1>
+  </header>
+
+  <div class="container">
+    <h2>Input Transaksi Penjualan</h2>
+    <input type="text" id="item" placeholder="Nama Barang">
+    <input type="number" id="qty" placeholder="Jumlah Terjual">
+    <input type="number" id="price" placeholder="Harga Satuan">
+    <button class="btn" onclick="tambahPenjualan()">Simpan Penjualan</button>
+
+    <h2>Data Penjualan</h2>
+    <table id="penjualanTable">
+      <thead>
+        <tr><th>Nama Barang</th><th>Jumlah</th><th>Harga Satuan</th><th>Total</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <h2>Stok Barang</h2>
+    <table id="stokTable">
+      <thead>
+        <tr><th>Nama Barang</th><th>Stok Tersisa</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <h2>Total Pemasukan</h2>
+    <div id="totalPemasukan">Rp 0</div>
+
+    <h2>Struk Transaksi</h2>
+    <div id="struk">(Struk akan muncul di sini)</div>
+    <button class="btn" onclick="cetakStruk()">Cetak Struk</button>
+
+    <h2>Grafik Penjualan</h2>
+    <canvas id="salesChart" height="100"></canvas>
+  </div>
+
+  <script>
+    let dataPenjualan = [];
+    let dataStok = { "Sabun": 100, "Shampoo": 50, "Sikat Gigi": 70 };
+    let total = 0;
+    let chart;
+
+    function formatRupiah(num) {
+      return 'Rp ' + num.toLocaleString('id-ID');
+    }
+
+    function tambahPenjualan() {
+      const item = document.getElementById("item").value;
+      const qty = parseInt(document.getElementById("qty").value);
+      const price = parseInt(document.getElementById("price").value);
+
+      if (!item || isNaN(qty) || isNaN(price)) return alert("Lengkapi semua input!");
+
+      const totalItem = qty * price;
+      dataPenjualan.push({ item, qty, price, totalItem });
+      total += totalItem;
+
+      if (dataStok[item]) {
+        dataStok[item] -= qty;
+      } else {
+        dataStok[item] = 0 - qty;
+      }
+
+      tampilkanPenjualan();
+      tampilkanStok();
+      updateChart();
+      document.getElementById("totalPemasukan").innerText = formatRupiah(total);
+
+      document.getElementById("item").value = "";
+      document.getElementById("qty").value = "";
+      document.getElementById("price").value = "";
+    }
+
+    function tampilkanPenjualan() {
+      const tbody = document.querySelector("#penjualanTable tbody");
+      tbody.innerHTML = "";
+      dataPenjualan.forEach(p => {
+        tbody.innerHTML += `<tr><td>${p.item}</td><td>${p.qty}</td><td>${formatRupiah(p.price)}</td><td>${formatRupiah(p.totalItem)}</td></tr>`;
+      });
+    }
+
+    function tampilkanStok() {
+      const tbody = document.querySelector("#stokTable tbody");
+      tbody.innerHTML = "";
+      for (const [item, stok] of Object.entries(dataStok)) {
+        tbody.innerHTML += `<tr><td>${item}</td><td>${stok}</td></tr>`;
+      }
+    }
+
+    function cetakStruk() {
+      let isiStruk = "===== STRUK PENJUALAN =====\n";
+      dataPenjualan.forEach(p => {
+        isiStruk += `- ${p.qty} x ${p.item} @${formatRupiah(p.price)} = ${formatRupiah(p.totalItem)}\n`;
+      });
+      isiStruk += `---------------------------\nTotal: ${formatRupiah(total)}\nTanggal: ${new Date().toLocaleString()}`;
+      document.getElementById("struk").textContent = isiStruk;
+    }
+
+    function updateChart() {
+      const ctx = document.getElementById('salesChart').getContext('2d');
+      const labels = dataPenjualan.map(p => p.item);
+      const data = dataPenjualan.map(p => p.totalItem);
+
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Total Penjualan per Barang',
+            data: data,
+            backgroundColor: 'rgba(0, 119, 204, 0.5)'
+          }]
+        },
+        options: {
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+    }
+
+    tampilkanStok();
+  </script>
+</body>
+</html>
